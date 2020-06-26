@@ -123,7 +123,7 @@ type Client struct {
 	PolicyChecks               PolicyChecks
 	PolicySetParameters        PolicySetParameters
 	PolicySets                 PolicySets
-	Registry                   Registry
+	RegistryModules            RegistryModules
 	Runs                       Runs
 	RunTriggers                RunTriggers
 	SSHKeys                    SSHKeys

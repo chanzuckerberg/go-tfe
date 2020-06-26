@@ -17,7 +17,7 @@ func TestModulesCreate(t *testing.T) {
 	defer testOrgCleanup()
 
 	optionsModule := ModuleCreateOptions{
-		Name: *String(randomString(t)),
+		Name:     *String(randomString(t)),
 		Provider: "random",
 	}
 
@@ -42,23 +42,32 @@ func TestModulesCreate(t *testing.T) {
 func TestModulesDelete(t *testing.T) {
 	client := testClient(t)
 	ctx := context.Background()
-	//
-	//testOrg, testOrgCleanup := createOrganization(t, client)
-	//defer testOrgCleanup()
 
-	//optionsModule := ModuleCreateOptions{
-	//	Name: *String(randomString(t)),
-	//	Provider: "random",
-	//}
+	testOrg, testOrgCleanup := createOrganization(t, client)
+	defer testOrgCleanup()
+
+	optionsModule := ModuleCreateOptions{
+		Name:     *String(randomString(t)),
+		Provider: "random",
+	}
+
+	m, err := client.Registry.CreateModule(ctx, testOrg.Name, optionsModule)
+
+	t.Run("creating a module", func(t *testing.T) {
+		require.NoError(t, err)
+		assert.Equal(t, optionsModule.Name, m.Name)
+		assert.Equal(t, optionsModule.Provider, m.Provider)
+	})
 
 	t.Run("deleting a module", func(t *testing.T) {
-		//testOrg, _ := createOrganization(t, client)
-		//// defer testOrgCleanup()
 		//testModule, _ := client.Registry.CreateModule(ctx, testOrg.Name, optionsModule)
 		//fmt.Printf("%+v\n", testModule)
 		//fmt.Printf("%+v\n", testModule.Organization.Name)
 		fmt.Print("foo")
-		deleteErr := client.Registry.DeleteModule(ctx, "tst-61f23e11-573f-4e3a-ea8a-235c97980790", "mod-JSqB7iiqcYe2Q12J")
+		deleteErr := client.Registry.DeleteModule(ctx, testOrg.Name, m.Name)
 		require.NoError(t, deleteErr)
+
+		//try to get the module
+
 	})
 }
