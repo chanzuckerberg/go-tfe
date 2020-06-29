@@ -201,13 +201,13 @@ func (r *registryModules) CreateVersion(ctx context.Context, organization string
 		return nil, err
 	}
 
-	rm := &RegistryModule{}
-	err = r.client.do(ctx, req, rm)
+	rmv := &RegistryModuleVersion{}
+	err = r.client.do(ctx, req, rmv)
 	if err != nil {
 		return nil, err
 	}
 
-	return rm, nil
+	return rmv, nil
 }
 
 // RegistryModuleCreateFromVCSConnectionOptions is used when creating a registry module with a VCS repo
