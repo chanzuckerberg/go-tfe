@@ -15,11 +15,14 @@ var _ RegistryModules = (*registryModules)(nil)
 //
 // TFE API docs: https://www.terraform.io/docs/cloud/api/modules.html
 type RegistryModules interface {
-	// Create a registry module without VCS
+	// Create a registry module without a VCS repo
 	Create(ctx context.Context, organization string, options RegistryModuleCreateOptions) (*RegistryModule, error)
 
+	// Create a registry module version
+	CreateVersion(ctx context.Context, organization string, name string, provider string, options RegistryModuleCreateVersionOptions) (*RegistryModule, error)
+
 	// TODO: how does this know which org???
-	// Create and publish a VCS backed registry module
+	// Create and publish a registry module with a VCS repo
 	CreateWithVCSConnection(ctx context.Context, options RegistryModuleCreateFromVCSConnectionOptions) (*RegistryModule, error)
 
 	// Delete a registry module
@@ -91,13 +94,33 @@ type RegistryModuleVersionStatuses struct {
 
 // RegistryModuleCreateOptions is used when creating a registry module without a VCS repo
 type RegistryModuleCreateOptions struct {
-	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
+	Name     *string `jsonapi:"attr,name"`
+	Provider *string `jsonapi:"attr,provider"`
 }
 
-// Create a new registry module without a VCS repo to the TFE private registry
+func (o RegistryModuleCreateOptions) valid() error {
+	if !validString(o.Name) {
+		return errors.New("name is required")
+	}
+	if !validStringID(o.Name) {
+		return errors.New("invalid value for name")
+	}
+	if !validString(o.Provider) {
+		return errors.New("provider is required")
+	}
+	if !validStringID(o.Provider) {
+		return errors.New("invalid value for provider")
+	}
+	return nil
+}
+
+// Create a new registry module without a VCS repo
 func (r *registryModules) Create(ctx context.Context, organization string, options RegistryModuleCreateOptions) (*RegistryModule, error) {
 	if !validStringID(&organization) {
 		return nil, errors.New("invalid value for organization")
+	}
+	if err := options.valid(); err != nil {
+		return nil, err
 	}
 
 	u := fmt.Sprintf(
@@ -118,13 +141,69 @@ func (r *registryModules) Create(ctx context.Context, organization string, optio
 	return rm, nil
 }
 
-// RegistryModuleCreateFromVCSConnectionOptions is used when creating a registry module form a VCS repo
+// RegistryModuleCreateVersionOptions is used when creating a registry module version
+type RegistryModuleCreateVersionOptions struct {
+	Version *string `jsonapi:"attr,version"`
+}
+
+func (o RegistryModuleCreateVersionOptions) valid() error {
+	if !validString(o.Version) {
+		return errors.New("version is required")
+	}
+	if !validStringID(o.Version) {
+		return errors.New("invalid value for version")
+	}
+	return nil
+}
+
+// Create a new registry module version
+func (r *registryModules) CreateVersion(ctx context.Context, organization string, name string, provider string, options RegistryModuleCreateVersionOptions) (*RegistryModule, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+	if !validString(&name) {
+		return nil, errors.New("name is required")
+	}
+	if !validStringID(&name) {
+		return nil, errors.New("invalid value for name")
+	}
+	if !validString(&provider) {
+		return nil, errors.New("provider is required")
+	}
+	if !validStringID(&provider) {
+		return nil, errors.New("invalid value for provider")
+	}
+	if err := options.valid(); err != nil {
+		return nil, err
+	}
+
+	u := fmt.Sprintf(
+		"%s/%s/%s/versions",
+		url.QueryEscape(organization),
+		url.QueryEscape(name),
+		url.QueryEscape(provider),
+	)
+	req, err := r.client.newRequest("POST", u, &options)
+	if err != nil {
+		return nil, err
+	}
+
+	rm := &RegistryModule{}
+	err = r.client.do(ctx, req, rm)
+	if err != nil {
+		return nil, err
+	}
+
+	return rm, nil
+}
+
+// RegistryModuleCreateFromVCSConnectionOptions is used when creating a registry module with a VCS repo
 type RegistryModuleCreateFromVCSConnectionOptions struct {
 	// VCS repository information
 	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
 }
 
-// CreateWithVCSConnection is used to create and publish a new registry module from a VCS repo to the TFE private registry
+// CreateWithVCSConnection is used to create and publish a new registry module with a VCS repo
 func (r *registryModules) CreateWithVCSConnection(ctx context.Context, options RegistryModuleCreateFromVCSConnectionOptions) (*RegistryModule, error) {
 	req, err := r.client.newRequest("POST", "registry-modules", &options)
 	if err != nil {
@@ -140,7 +219,7 @@ func (r *registryModules) CreateWithVCSConnection(ctx context.Context, options R
 	return rm, nil
 }
 
-// Delete is used to delete the entire module on the TFE private registry
+// Delete is used to delete the entire registry module
 func (r *registryModules) Delete(ctx context.Context, organization string, name string) error {
 	if !validStringID(&organization) {
 		return errors.New("invalid value for organization")
@@ -165,7 +244,7 @@ func (r *registryModules) Delete(ctx context.Context, organization string, name 
 	return r.client.do(ctx, req, nil)
 }
 
-// DeleteProvider is used to delete the specific module provider on the TFE private registry
+// DeleteProvider is used to delete the specific registry module provider
 func (r *registryModules) DeleteProvider(ctx context.Context, organization string, name string, provider string) error {
 	if !validStringID(&organization) {
 		return errors.New("invalid value for organization")
@@ -197,7 +276,7 @@ func (r *registryModules) DeleteProvider(ctx context.Context, organization strin
 	return r.client.do(ctx, req, nil)
 }
 
-// DeleteVersion is used to delete the specific module version on the TFE private registry
+// DeleteVersion is used to delete the specific registry module version
 func (r *registryModules) DeleteVersion(ctx context.Context, organization string, name string, provider string, version string) error {
 	if !validStringID(&organization) {
 		return errors.New("invalid value for organization")
