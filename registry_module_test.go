@@ -16,24 +16,24 @@ func TestModulesCreate(t *testing.T) {
 	testOrg, testOrgCleanup := createOrganization(t, client)
 	defer testOrgCleanup()
 
-	optionsModule := ModuleCreateOptions{
+	optionsModule := RegistryModuleCreateOptions{
 		Name:     *String(randomString(t)),
 		Provider: "random",
 	}
 
 	t.Run("creating a module", func(t *testing.T) {
-		m, err := client.Registry.CreateModule(ctx, testOrg.Name, optionsModule)
+		m, err := client.RegistryModules.Create(ctx, testOrg.Name, optionsModule)
 		require.NoError(t, err)
 		assert.Equal(t, optionsModule.Name, m.Name)
 		assert.Equal(t, optionsModule.Provider, m.Provider)
 	})
 
 	t.Run("creating a module version", func(t *testing.T) {
-		optionsModuleVersion := ModuleCreateVersionOptions{
+		optionsModuleVersion := RegistryModuleCreateVersionOptions{
 			Version: "1.2.3",
 		}
 
-		mv, err := client.Registry.CreateModuleVersion(ctx, testOrg.Name, optionsModule.Name, optionsModule.Provider, optionsModuleVersion)
+		mv, err := client.RegistryModules.CreateVersion(ctx, testOrg.Name, optionsModule.Name, optionsModule.Provider, optionsModuleVersion)
 		require.NoError(t, err)
 		assert.Equal(t, optionsModuleVersion.Version, mv.Version)
 	})
