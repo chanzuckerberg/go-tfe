@@ -25,6 +25,9 @@ type RegistryModules interface {
 	// Create and publish a registry module with a VCS repo
 	CreateWithVCSConnection(ctx context.Context, options RegistryModuleCreateFromVCSConnectionOptions) (*RegistryModule, error)
 
+	// Read a registry module
+	Read(ctx context.Context, organization string, name string, provider string) (*RegistryModule, error)
+
 	// Delete a registry module
 	Delete(ctx context.Context, organization string, name string) error
 
@@ -225,6 +228,44 @@ func (r *registryModules) CreateWithVCSConnection(ctx context.Context, options R
 
 	rm := &RegistryModule{}
 	err = r.client.do(ctx, req, rm)
+	if err != nil {
+		return nil, err
+	}
+
+	return rm, nil
+}
+
+// Read a specific registry module
+func (r *registryModules) Read(ctx context.Context, organization string, name string, provider string) (*RegistryModule, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+	if !validString(&name) {
+		return nil, errors.New("name is required")
+	}
+	if !validStringID(&name) {
+		return nil, errors.New("invalid value for name")
+	}
+	if !validString(&provider) {
+		return nil, errors.New("provider is required")
+	}
+	if !validStringID(&provider) {
+		return nil, errors.New("invalid value for provider")
+	}
+
+	u := fmt.Sprintf(
+		"registry-modules/show/%s/%s/%s",
+		url.QueryEscape(organization),
+		url.QueryEscape(name),
+		url.QueryEscape(provider),
+	)
+	req, err := r.client.newRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rm := &RegistryModule{}
+	err = r.client.do(ctx, req, nil)
 	if err != nil {
 		return nil, err
 	}
