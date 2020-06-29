@@ -16,8 +16,9 @@ var _ RegistryModules = (*registryModules)(nil)
 // TFE API docs: https://www.terraform.io/docs/cloud/api/modules.html
 type RegistryModules interface {
 	// Create a registry module without VCS
-	Create(ctx context.Context, options RegistryModuleCreateOptions) (*RegistryModule, error)
+	Create(ctx context.Context, organization string, options RegistryModuleCreateOptions) (*RegistryModule, error)
 
+	// TODO: how does this know which org???
 	// Create and publish a VCS backed registry module
 	CreateWithVCSConnection(ctx context.Context, options RegistryModuleCreateFromVCSConnectionOptions) (*RegistryModule, error)
 
@@ -88,47 +89,55 @@ type RegistryModuleVersionStatuses struct {
 	Error   string                      `json:"error"`
 }
 
-// RegistryModuleCreateOptions is used when creating a registry module
+// RegistryModuleCreateOptions is used when creating a registry module without a VCS repo
 type RegistryModuleCreateOptions struct {
 	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
 }
 
-// Create a new registry module to the TFE private registry
-func (r *registryModules) Create(ctx context.Context, options RegistryModuleCreateOptions) (*RegistryModule, error) {
-	req, err := r.client.newRequest("POST", "registry-modules", &options)
+// Create a new registry module without a VCS repo to the TFE private registry
+func (r *registryModules) Create(ctx context.Context, organization string, options RegistryModuleCreateOptions) (*RegistryModule, error) {
+	if !validStringID(&organization) {
+		return nil, errors.New("invalid value for organization")
+	}
+
+	u := fmt.Sprintf(
+		"%s/registry-modules",
+		url.QueryEscape(organization),
+	)
+	req, err := r.client.newRequest("POST", u, &options)
 	if err != nil {
 		return nil, err
 	}
 
-	m := &RegistryModule{}
-	err = r.client.do(ctx, req, m)
+	rm := &RegistryModule{}
+	err = r.client.do(ctx, req, rm)
 	if err != nil {
 		return nil, err
 	}
 
-	return m, nil
+	return rm, nil
 }
 
-// RegistryModuleCreateOptions is used when creating a registry module
+// RegistryModuleCreateFromVCSConnectionOptions is used when creating a registry module form a VCS repo
 type RegistryModuleCreateFromVCSConnectionOptions struct {
 	// VCS repository information
 	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
 }
 
-// CreateWithVCSConnection is used to create abd publish a new registry module from a VCS repo to the TFE private registry
+// CreateWithVCSConnection is used to create and publish a new registry module from a VCS repo to the TFE private registry
 func (r *registryModules) CreateWithVCSConnection(ctx context.Context, options RegistryModuleCreateFromVCSConnectionOptions) (*RegistryModule, error) {
 	req, err := r.client.newRequest("POST", "registry-modules", &options)
 	if err != nil {
 		return nil, err
 	}
 
-	m := &RegistryModule{}
-	err = r.client.do(ctx, req, m)
+	rm := &RegistryModule{}
+	err = r.client.do(ctx, req, rm)
 	if err != nil {
 		return nil, err
 	}
 
-	return m, nil
+	return rm, nil
 }
 
 // Delete is used to delete the entire module on the TFE private registry
