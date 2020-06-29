@@ -19,7 +19,7 @@ type RegistryModules interface {
 	Create(ctx context.Context, organization string, options RegistryModuleCreateOptions) (*RegistryModule, error)
 
 	// Create a registry module version
-	CreateVersion(ctx context.Context, organization string, name string, provider string, options RegistryModuleCreateVersionOptions) (*RegistryModule, error)
+	CreateVersion(ctx context.Context, organization string, name string, provider string, options RegistryModuleCreateVersionOptions) (*RegistryModuleVersion, error)
 
 	// TODO: how does this know which org???
 	// Create and publish a registry module with a VCS repo
@@ -78,6 +78,19 @@ type RegistryModule struct {
 
 	// Relations
 	Organization *Organization `jsonapi:"relation,organization"`
+}
+
+// RegistryModuleVersion represents a registry module version
+type RegistryModuleVersion struct {
+	ID        string                      `jsonapi:"primary,registry-module-versions"`
+	Source    string                      `jsonapi:"attr,source"`
+	Status    RegistryModuleVersionStatus `jsonapi:"attr,status"`
+	Version   string                      `jsonapi:"attr,version"`
+	CreatedAt string                      `jsonapi:"attr,created-at"`
+	UpdatedAt string                      `jsonapi:"attr,updated-at"`
+
+	// Relations
+	RegistryModule *RegistryModule `jsonapi:"relation,registry-module"`
 }
 
 type RegistryModulePermissions struct {
@@ -157,7 +170,7 @@ func (o RegistryModuleCreateVersionOptions) valid() error {
 }
 
 // Create a new registry module version
-func (r *registryModules) CreateVersion(ctx context.Context, organization string, name string, provider string, options RegistryModuleCreateVersionOptions) (*RegistryModule, error) {
+func (r *registryModules) CreateVersion(ctx context.Context, organization string, name string, provider string, options RegistryModuleCreateVersionOptions) (*RegistryModuleVersion, error) {
 	if !validStringID(&organization) {
 		return nil, errors.New("invalid value for organization")
 	}
