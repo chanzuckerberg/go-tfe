@@ -15,7 +15,10 @@ var _ RegistryModules = (*registryModules)(nil)
 //
 // TFE API docs: https://www.terraform.io/docs/cloud/api/modules.html
 type RegistryModules interface {
-	// Create and publich a VCS backed registry module
+	// Create a registry module without VCS
+	Create(ctx context.Context, options RegistryModuleCreateOptions) (*RegistryModule, error)
+
+	// Create and publish a VCS backed registry module
 	CreateWithVCSConnection(ctx context.Context, options RegistryModuleCreateFromVCSConnectionOptions) (*RegistryModule, error)
 
 	// Delete a registry module
@@ -44,10 +47,10 @@ const (
 	RegistryModuleStatusSetupComplete RegistryModuleStatus = "setup_complete"
 )
 
-// RegistryModuleStatus represents the status of the registry module
+// RegistryModuleVersionStatus represents the status of a specific version of a registry module
 type RegistryModuleVersionStatus string
 
-// List of available registry module statuses
+// List of available registry module version statuses
 const (
 	RegistryModuleVersionStatusPending             RegistryModuleVersionStatus = "pending"
 	RegistryModuleVersionStatusCloning             RegistryModuleVersionStatus = "cloning"
@@ -57,16 +60,6 @@ const (
 	RegistryModuleVersionStatusRegIngressFailed    RegistryModuleVersionStatus = "reg_ingress_failed"
 	RegistryModuleVersionStatusOk                  RegistryModuleVersionStatus = "ok"
 )
-
-// RegistryModuleCreateOptions is used when creating a module
-type RegistryModuleCreateFromVCSConnectionOptions struct {
-	// VCS repository information. When present, the policies and
-	// configuration will be sourced from the specified VCS repository
-	// instead of being defined within the policy set itself. Note that
-	// this option is mutually exclusive with the Policies option and
-	// both cannot be used at the same time.
-	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
-}
 
 // RegistryModule represents a registry module
 type RegistryModule struct {
@@ -95,7 +88,34 @@ type RegistryModuleVersionStatuses struct {
 	Error   string                      `json:"error"`
 }
 
-// Publish is used to publish a new module to the TFE private registry
+// RegistryModuleCreateOptions is used when creating a registry module
+type RegistryModuleCreateOptions struct {
+	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
+}
+
+// Create a new registry module to the TFE private registry
+func (r *registryModules) Create(ctx context.Context, options RegistryModuleCreateOptions) (*RegistryModule, error) {
+	req, err := r.client.newRequest("POST", "registry-modules", &options)
+	if err != nil {
+		return nil, err
+	}
+
+	m := &RegistryModule{}
+	err = r.client.do(ctx, req, m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+// RegistryModuleCreateOptions is used when creating a registry module
+type RegistryModuleCreateFromVCSConnectionOptions struct {
+	// VCS repository information
+	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
+}
+
+// CreateWithVCSConnection is used to create abd publish a new registry module from a VCS repo to the TFE private registry
 func (r *registryModules) CreateWithVCSConnection(ctx context.Context, options RegistryModuleCreateFromVCSConnectionOptions) (*RegistryModule, error) {
 	req, err := r.client.newRequest("POST", "registry-modules", &options)
 	if err != nil {
