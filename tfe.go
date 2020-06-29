@@ -225,7 +225,7 @@ func NewClient(cfg *Config) (*Client, error) {
 	client.PolicyChecks = &policyChecks{client: client}
 	client.PolicySetParameters = &policySetParameters{client: client}
 	client.PolicySets = &policySets{client: client}
-	client.Registry = &registry{client: client}
+	client.RegistryModules = &registryModules{client: client}
 	client.Runs = &runs{client: client}
 	client.RunTriggers = &runTriggers{client: client}
 	client.SSHKeys = &sshKeys{client: client}
